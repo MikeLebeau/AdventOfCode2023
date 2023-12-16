@@ -1,0 +1,1 @@
+import alldays from './days';
