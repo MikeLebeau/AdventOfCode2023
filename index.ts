@@ -13,5 +13,9 @@ import alldays from './days';
 // console.log(alldays.day03.two());
 
 // Day 04
-console.log(alldays.day04.one());
-console.log(alldays.day04.two());
+// console.log(alldays.day04.one());
+// console.log(alldays.day04.two());
+
+// Day 05
+console.log(alldays.day05.one());
+console.log(alldays.day05.two());
