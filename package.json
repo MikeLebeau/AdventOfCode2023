@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npx ts-node index.ts",
-    "watch": "nodemon"
+    "watch": "nodemon index.ts"
   },
   "dependencies": {
     "@types/node": "^20.10.3",
