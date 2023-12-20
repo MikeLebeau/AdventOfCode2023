@@ -1,6 +1,7 @@
 import { examplePuzzle, realPuzzle } from './puzzle';
 
 let seeds: Seed[] = [];
+let seedsTwo: {min: number, max: number}[] = [];
 let maps: Map[] = [];
 
 enum MapName {
@@ -204,6 +205,36 @@ class Map {
   constructor(name: String) {
     this.name = name;
   }
+
+  getDestinationFromSource(sourceId: number): number {
+    let destinationId: number = sourceId;
+    for(let i = 0; i < this.source.length; i++){
+      const source = this.source[i];
+
+      if(source <= sourceId && sourceId <= source+this.range[i]) {
+        const bump = sourceId-source;
+        destinationId = this.destination[i]+bump;
+        break;
+      }
+    }
+
+    return destinationId;
+  }
+
+  getSourceFromDestination(destinationId: number): number {
+    let sourceId: number = destinationId;
+    for(let i = 0; i < this.destination.length; i++){
+      const destination = this.destination[i];
+
+      if(destination <= destinationId && destinationId <= destination+this.range[i]) {
+        const bump = destinationId-destination;
+        sourceId = this.source[i]+bump;
+        break;
+      }
+    }
+
+    return sourceId;
+  }
 }
 
 function initSeed(seedLine: String){
@@ -216,26 +247,11 @@ function initSeed(seedLine: String){
 }
 
 function initSeedSecond(seedLine: String){
-  seeds = [];
-  let compteur = 0;
-  const splittedSeedLine = seedLine.split(/\s+/);
+  const splittedSeedLine = seedLine.split(/\s+/).slice(1);
   
-  for(let i = 0; i < splittedSeedLine.length; i++){
-    const seedId = splittedSeedLine[i];
-
-    
-    if(!isNaN(Number(seedId))) {
-      for(let j = 0; j < Number(splittedSeedLine[i+1]); j++){
-        // console.log(Number(seedId)+j);
-        seeds.push(new Seed(Number(seedId)+j));
-        compteur++;
-      }
-      i++;
-    }
+  for(let i = 0; i < splittedSeedLine.length; i += 2){
+    seedsTwo.push({min: Number(splittedSeedLine[i]), max: Number(splittedSeedLine[i]) + Number(splittedSeedLine[i+1])});
   }
-
-  console.log(compteur);
-  console.log(seeds);
 }
 
 function initMaps(lines: String[]) {
@@ -290,34 +306,30 @@ function two(useRealPuzzle: boolean = true): String {
     ? realPuzzle.trim().split('\n')
     : examplePuzzle.trim().split('\n');
 
-  initSeedSecond(lines[0]);
-  // initMaps(lines);
-
-  // Complete the initialization
-  // seeds.forEach((seed) => {
-  //   seed.getSoilId();
-  //   seed.getFertilizerId();
-  //   seed.getWaterId();
-  //   seed.getLightId();
-  //   seed.getTemperatureId();
-  //   seed.getHumidityId();
-  //   seed.getLocationId();
-  // });
-
-  // console.log(seeds);
-
-
   let finalResult: number;
-  // seeds.forEach((seed) => {
-  //   const location = seed.getLocationId();
-  //   if(!finalResult || finalResult > location) {
-  //     finalResult = location;
-  //   }
-  // });
 
-  return `Day 05** ${
-    useRealPuzzle ? 'realPuzzle' : 'examplePuzzle'
-  }: ${finalResult}`;
+  initSeedSecond(lines[0]);
+  initMaps(lines);
+
+  for(let locationId = 0; ; locationId++) {
+    const humidityId = maps.find((map) => map.name === MapName.Location).getSourceFromDestination(locationId);
+    const temperatureId = maps.find((map) => map.name === MapName.Humidity).getSourceFromDestination(humidityId);
+    const lightId = maps.find((map) => map.name === MapName.Temperature).getSourceFromDestination(temperatureId);
+    const waterId = maps.find((map) => map.name === MapName.Light).getSourceFromDestination(lightId);
+    const fertilizerId = maps.find((map) => map.name === MapName.Water).getSourceFromDestination(waterId);
+    const soilId = maps.find((map) => map.name === MapName.Fertilizer).getSourceFromDestination(fertilizerId);
+    const seedId = maps.find((map) => map.name === MapName.Soil).getSourceFromDestination(soilId);
+
+    seedsTwo.forEach((seed) => {
+      if(seed.min <= seedId && seedId <= seed.max){
+        finalResult = (finalResult && finalResult < locationId) ? finalResult : locationId;
+        
+        console.log(`Day 05** ${
+          useRealPuzzle ? 'realPuzzle' : 'examplePuzzle'
+        }: ${finalResult}`);
+      }
+    });
+  }
 }
 
 export default { one, two };
