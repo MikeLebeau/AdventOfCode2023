@@ -26,4 +26,8 @@ import alldays from './days';
 
 // Day 07
 // console.log(alldays.day07.one());
-console.log(alldays.day07.two().finalResultString);
+// console.log(alldays.day07.two().finalResultString);
+
+// Day 08
+console.log(alldays.day08.one());
+console.log(alldays.day08.two());
