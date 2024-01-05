@@ -1,3 +1,4 @@
+import { DebugHand } from './debugTools';
 import { examplePuzzle, realPuzzle } from './puzzle';
 
 type Card = {
@@ -73,8 +74,8 @@ class Hand {
   }
 
   // FOR TEST
-  getTypeName() {
-    return Object.entries(Types)[this.getType()][1];
+  getTypeName(): string {
+    return Object.entries(Types)[this.getType()][1].toString();
   }
   // END FOR TEST
 
@@ -164,6 +165,11 @@ class Hand {
       // AAAKJ
       (Object.values(this.cardCount).filter((count) => count === 3).length === 1 &&
       Object.values(this.cardCount).filter((count) => count === 1).length === 2 && 
+      this.getJokerCount() === 1)
+      ||
+      // AAKKJ
+      (Object.values(this.cardCount).filter((count) => count === 2).length === 2 &&
+      Object.values(this.cardCount).filter((count) => count === 1).length === 1 &&
       this.getJokerCount() === 1);
   }
 
@@ -275,7 +281,7 @@ function one(useRealPuzzle: boolean = true): String {
   }: ${finalResult}`;
 }
 
-const debugLog = [];
+const debugLog: DebugHand[] = [];
 
 function two(useRealPuzzle: boolean = true) {
   const lines: String[] = useRealPuzzle
@@ -297,11 +303,11 @@ function two(useRealPuzzle: boolean = true) {
 
       if(a.isBetterThan(b)){
         // console.log(`${aName}(${a.getTypeName()}) > ${bName}(${b.getTypeName()})`);
-        debugLog.push(`${aName} > ${bName}`);
+        debugLog.push({winnerHandName: aName, winnerType: a.getTypeName(), loserHandName: bName, loserType: b.getTypeName()});
         return 1;
       } else if(b.isBetterThan(a)) {
         // console.log(`${aName}(${a.getTypeName()}) < ${bName}(${b.getTypeName()})`);
-        debugLog.push(`${aName} < ${bName}`);
+        debugLog.push({winnerHandName: bName, winnerType: b.getTypeName(), loserHandName: aName, loserType: a.getTypeName()});
         return -1;
       } else {
         return 0;
@@ -313,20 +319,11 @@ function two(useRealPuzzle: boolean = true) {
     return res;
   }, 0);
 
-  const truc = `Day 07** ${
+  const finalResultString = `Day 07** ${
     useRealPuzzle ? 'realPuzzle' : 'examplePuzzle'
   }: ${finalResult}`;
 
-  return { truc, debugLog};
-
-  // TARGET FOUND WITH ANOTHER CODE => 248750248
-  // Approved...
-  // const target = 248750248;
-  // console.log('UN CHANGEMENT BONNE DIRECTION? =>', finalResult === target);
-  // console.log(target-finalResult);
-  // return `Day 07** ${
-  //   useRealPuzzle ? 'realPuzzle' : 'examplePuzzle'
-  // }: ${finalResult}`;
+  return { finalResultString, debugLog};
 }
 
 export default { one, two, debugLog };

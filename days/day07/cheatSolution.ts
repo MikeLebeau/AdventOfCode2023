@@ -1,5 +1,7 @@
+// Code from https://github.com/tlareg/advent-of-code/blob/master/src/2023/day07/index.ts
 // https://adventofcode.com/2023/day/7
 
+import { DebugHand } from './debugTools';
 import { examplePuzzle, realPuzzle } from './puzzle';
 
 import { readFileSync } from 'fs';
@@ -45,8 +47,8 @@ type Hand = {
     type: HandType;
 };
 
-const debugLog = [];
-const solution = solve();
+const debugLog: DebugHand[] = [];
+// const solution = solve();
 // console.log(solution);
 
 function readLines() {
@@ -69,10 +71,10 @@ function getTotalWinnings(inputLines: string[], withJoker: boolean = false) {
 
         if (result > 0) {
             // console.log(`${a.cards} > ${b.cards}`);
-            debugLog.push(`${a.cards} > ${b.cards}`);
+            debugLog.push({winnerHandName: a.cards, winnerType: a.type, loserHandName: b.cards, loserType: b.type});
         } else if(result < 0) {
             // console.log(`${a.cards} < ${b.cards}`);
-            debugLog.push(`${a.cards} < ${b.cards}`);
+            debugLog.push({winnerHandName: b.cards, winnerType: b.type, loserHandName: a.cards, loserType: a.type});
         }
 
         return compareHands(a, b, withJoker)
