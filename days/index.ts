@@ -6,6 +6,7 @@ import day05 from './day05';
 import day06 from './day06';
 import day07 from './day07';
 import day08 from './day08';
+import day09 from './day09';
 
 const alldays = {
   day01,
@@ -15,7 +16,8 @@ const alldays = {
   day05,
   day06,
   day07,
-  day08
+  day08,
+  day09
 };
 
 export default alldays;
