@@ -7,9 +7,8 @@ function one(useRealPuzzle: boolean = true): String {
 
   let finalResult = '';
 
-  return `Day 0X* ${
-    useRealPuzzle ? 'realPuzzle' : 'examplePuzzle'
-  }: ${finalResult}`;
+  return `Day 1X* ${useRealPuzzle ? 'realPuzzle' : 'examplePuzzle'
+    }: ${finalResult}`;
 }
 
 function two(useRealPuzzle: boolean = true): String {
@@ -19,9 +18,8 @@ function two(useRealPuzzle: boolean = true): String {
 
   let finalResult = '';
 
-  return `Day 0X** ${
-    useRealPuzzle ? 'realPuzzle' : 'examplePuzzle'
-  }: ${finalResult}`;
+  return `Day 1X** ${useRealPuzzle ? 'realPuzzle' : 'examplePuzzle'
+    }: ${finalResult}`;
 }
 
 export default { one, two };
