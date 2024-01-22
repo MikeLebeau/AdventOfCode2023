@@ -38,5 +38,5 @@ import alldays from './days';
 
 
 // Day 10
-console.log(alldays.day10.one(false));
-// console.log(alldays.day10.two());
+// console.log(alldays.day10.one());
+console.log(alldays.day10.two(false));
