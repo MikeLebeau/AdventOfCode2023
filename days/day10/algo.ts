@@ -85,17 +85,17 @@ function initializeMapAndGetStartingPosSecondStar(lines: string[]) {
       if (curLine[j] === 'S') {
         startingPos = curTile;
 
-        if (getConnectorFromName(lines[i - 1][j])?.allowedMove.includes(Direction.South)) {
+        if ((i-1 >= 0) && getConnectorFromName(lines[i - 1][j])?.allowedMove.includes(Direction.South)) {
           startingPos.connector.allowedMove.push(Direction.North);
           console.log('le premier check:', getConnectorFromName(lines[i - 1][j])?.allowedMove.includes(Direction.South));
         }
-        if (getConnectorFromName(lines[i + 1][j])?.allowedMove.includes(Direction.North)) {
+        if ((i+1 <= lines.length) && getConnectorFromName(lines[i + 1][j])?.allowedMove.includes(Direction.North)) {
           startingPos.connector.allowedMove.push(Direction.South);
         }
-        if (getConnectorFromName(lines[i][j - 1])?.allowedMove.includes(Direction.East)) {
+        if ((j-1 >= 0) && getConnectorFromName(lines[i][j - 1])?.allowedMove.includes(Direction.East)) {
           startingPos.connector.allowedMove.push(Direction.West);
         }
-        if (getConnectorFromName(lines[i][j + 1])?.allowedMove.includes(Direction.West)) {
+        if ((j+1 <= curLine.length) && getConnectorFromName(lines[i][j + 1])?.allowedMove.includes(Direction.West)) {
           startingPos.connector.allowedMove.push(Direction.East);
         }
       }
@@ -187,19 +187,101 @@ function two(useRealPuzzle: boolean = true): String {
   const alreadyVisited: MapTile[] = [startingPos];
   let currentPos: MapTile = getNextTile(startingPos, startingPos.connector.allowedMove, alreadyVisited, map);
 
-  const pipeList: MapTile[] = [startingPos];
+  const pipeList: MapTile[] = [{
+    ...startingPos, 
+    connector: {
+      ...startingPos.connector, 
+      name: Connectors.find((connector) => JSON.stringify(connector.allowedMove) === JSON.stringify(startingPos.connector.allowedMove)).name
+    }
+  }];
+
+  let myResponse = '';
 
   // WHEN
   while (currentPos !== getNextTile(currentPos, currentPos.connector.allowedMove, alreadyVisited, map)) {
     pipeList.push(currentPos);
     currentPos = getNextTile(currentPos, currentPos.connector.allowedMove, alreadyVisited, map);
   }
+  pipeList.push(currentPos); // To get the last pos too
 
-  // Il faut que je retire tout les . qui sont a l'exterieur
-  // Genre tu prends le plus petit X des pipe et apres tu enleves tout ce qui a en dessous
-  // Pareil pour les Y etc
+  let linesTest: string[] = lines;
+  let totalHitCount = 0;
+  for(let row = 0; row < linesTest.length; row++){
+    let lineText = '';
 
-  // Apres il faut retirer ceux qui restent
+    const allPipeOnMyRow = pipeList.filter((pipe) => pipe.pos.x === row);
+    
+    for(let col = 0; col < linesTest[row].length; col++){
+      const allPipeOnMyCol = pipeList.filter((pipe) => pipe.pos.y === col);
+      const tile = linesTest[row][col];
+      let hitCount = 0;
+      let allWall;
+
+      if(pipeList.find((pipe) => pipe.pos.x === row && pipe.pos.y === col)){
+        lineText += `\u001b[1;45m${pipeList.find((pipe) => pipe.pos.x === row && pipe.pos.y === col).connector.name}\u001b[0m`;
+        continue;
+      }
+
+      if(allPipeOnMyRow.some((pipe) => pipe.pos.y < col) && allPipeOnMyRow.some((pipe) => pipe.pos.y > col) && 
+      allPipeOnMyCol.some((pipe) => pipe.pos.x < row) && allPipeOnMyCol.some((pipe) => pipe.pos.x > row)){
+        
+        allWall = allPipeOnMyRow
+          .filter((pipe) => col < pipe.pos.y)
+          .sort((a, b) => a.pos.y - b.pos.y)
+          .reduce((res, cur) => {
+
+            switch (cur.connector.name) {
+              case '|':
+                res.wallCount++;
+                break;
+              case 'F':
+                res.wall['F'] ? res.wall['F']++ : res.wall['F'] = 1;
+                res.lastOne = 'F';
+                break;
+              case 'L':
+                res.wall['L'] ? res.wall['L']++ : res.wall['L'] = 1;
+                res.lastOne = 'L';
+                break;
+              case 'J':
+                if(res.wall['F'] && res.lastOne === 'F'){
+                  res.wall['F']--
+                  res.wallCount++;
+                } else {
+                  res.wall['J'] = 1
+                }
+                break;
+              case '7':
+                if(res.wall['L'] && res.lastOne === 'L'){
+                  res.wall['L']--
+                  res.wallCount++;
+                } else {
+                  res.wall['7'] = 1
+                }
+                break;
+              default:
+                break;
+            }
+
+            return res;
+          }, { lastOne: '', wallCount: 0, wall: {} });
+
+          hitCount = allWall.wallCount;
+      }
+
+      if(hitCount%2 !== 0){
+        totalHitCount++;
+        lineText += '\u001b[1;42mI\u001b[0m';
+      } else {
+        if(linesTest[row][col] === '.'){
+          lineText += '\u001b[1;41mO\u001b[0m';
+        }
+      }
+    }
+    // console.log(row, lineText);
+    myResponse = lineText;
+  }
+
+  finalResult = totalHitCount;
 
   // THEN
   return `Day 10** ${useRealPuzzle ? 'realPuzzle' : 'examplePuzzle'
