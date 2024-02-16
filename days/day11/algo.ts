@@ -1,4 +1,4 @@
-import { examplePuzzle, examplePuzzleTwo, realPuzzle } from './puzzle';
+import { testPuzzle, examplePuzzle, examplePuzzleTwo, realPuzzle } from './puzzle';
 
 type UniversPoint = {
   name: string;
@@ -24,7 +24,6 @@ function initializeTheUnivers(lines: string[]): UniversPoint[] {
         verticalExpanded: false,
         horizontalExpanded: false
       });
-      // console.log(`row: ${rowIndex}; col: ${columnIndex}: ${map[rowIndex][columnIndex]}`);
     }
   }
 
@@ -60,7 +59,12 @@ function expandTheUnivers(univers: UniversPoint[]): UniversPoint[] {
 
 // Comment je vais calculer mon heuristique
 function calculateHValue(row: number, col: number, dest: UniversPoint) {
-  return (Math.sqrt((row - dest.row) * (row - dest.row) + (col - dest.col) * (col - dest.col)));
+  
+  // Manhattan Distance: Good quand tu peux te deplacer uniquement dans 4 directions
+  return Math.abs(row - dest.row) + Math.abs(col - dest.col);
+
+  // Euclidean Distance: Good quand tu peux te deplacer dans toute les directions
+  //return (Math.sqrt((row - dest.row) * (row - dest.row) + (col - dest.col) * (col - dest.col)));
 }
 
 type AStarCell = {
@@ -115,24 +119,32 @@ function getSuccessor(
       console.log('Cette direction est inconnue');
       break;
   }
-
-  let newG: number;
-  let newH: number;
-  let newF: number;
-
+  
+  // console.log(`RowCount: ${rowCount}; ColCount: ${colCount}`);
   if ((nextRow >= 0) && (nextRow < rowCount) && (nextCol >= 0) && (nextCol < colCount)) {
-
+        
     if (nextRow === destination.row && nextCol === destination.col) {
       cells[nextRow][nextCol].parentRow = source.row;
       cells[nextRow][nextCol].parentCol = source.col;
-      console.log('FOUNDED');
       return true;
     } else if (closedList[nextRow][nextCol] === false) {
-      newG = cells[source.row][source.col].g++;
-      newH = calculateHValue(nextRow, nextCol, destination);
-      newF = newG + newH;
 
-      if (cells[nextRow][nextCol].f === Number.MAX_VALUE || cells[nextRow][nextCol].f > newF) {
+      // console.log(`Next row: ${nextRow}; next col: ${nextCol}`);
+
+      let newG: number = cells[source.row][source.col].g + 1;
+      let newH: number = calculateHValue(nextRow, nextCol, destination);
+      let newF: number = newG + newH;
+
+      // console.log(`Les cells:\n\t${JSON.stringify(cells)}`);
+      // console.log('------------------------');
+      // console.log(`Source: (${source.row};${source.col})`);
+      // console.log(`Next: (${nextRow};${nextCol})`);
+      // console.log(`Le F: ${cells[nextRow][nextCol].f}, le newF: ${newF}`);
+      // console.log(`Les new: \n\tNewG: ${newG}\n\tNewH: ${newH}\n\tNewF: ${newF}`);
+
+      // console.log(`Le newG: ${newG}; old: ${cells[source.row][source.col].g}`);
+      
+      if (cells[nextRow][nextCol].f === Number.MAX_VALUE || cells[nextRow][nextCol].f >= newF) {
         openList.push({ f: newF, row: nextRow, col: nextCol });
 
         cells[nextRow][nextCol].f = newF;
@@ -144,17 +156,42 @@ function getSuccessor(
     }
   }
 
+  // Il faut que je regarde si les successor sont ok ou pas et voir pourquoi je n'atteint jamais la destination 
+
   return false;
 }
 
+function printAStarPath(univers: UniversPoint[], closedList: boolean[][], openList: OpenList[]) {
+  console.log('------------- Print AStar Path -------------');
+  const rowCount = univers.filter((point) => point.col === 0).length;
+  const colCount = univers.filter((point) => point.row === 0).length;
+
+  for(let i = 0; i < rowCount; i++){
+    let row = '';
+    for(let j = 0; j < colCount; j++){
+      if(closedList[i][j] === true){
+        row += 'X';
+      } else if (openList.find((open) => open.row === i && open.col === j)){
+        row += 'O';
+      } else {
+        row += univers.find((point) => point.col === j && point.row === i).name;
+      }
+    }
+
+    console.log(row);
+  }
+
+  console.log('------------------------------------------------------------------');
+}
+
 function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination: UniversPoint): boolean {
-  const rowCount = univers.filter((point: UniversPoint) => point.row === 0).length;
-  const colCount = univers.filter((point: UniversPoint) => point.col === 0).length;
+  const rowCount = univers.filter((point: UniversPoint) => point.col === 0).length;
+  const colCount = univers.filter((point: UniversPoint) => point.row === 0).length;
 
   // Flemme de faire les checks genre est-ce que la source est bien dans l'univers
   // est-ce que la destination est dans l'univers etc
 
-  const closedList: boolean[][] = [...new Array(rowCount)].map((u) => u = (new Array(colCount)).map((u) => u = undefined));
+  const closedList: boolean[][] = [...new Array(rowCount)].map((row) => row = ([...new Array(colCount)]).map((col) => col = false));
 
   const defaultCell: AStarCell = {
     f: Number.MAX_VALUE,
@@ -163,7 +200,7 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
     parentRow: -1,
     parentCol: -1
   };
-  const cells: AStarCell[][] = [...new Array(rowCount)].map((u) => u = (new Array(colCount)).map((u) => u = defaultCell));
+  const cells: AStarCell[][] = [...new Array(rowCount)].map((u) => u = ([...new Array(colCount)]).map((u) => u = defaultCell));
 
   // Starting point
   cells[source.row][source.col] = {
@@ -184,13 +221,16 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
 
     openList.splice(i, 1);
 
+    // console.log(`ICI: ${JSON.stringify(closedList)}`);
     closedList[olSource.row][olSource.col] = true;
+
+    // console.log(`LA ${i}: ${JSON.stringify(closedList)}`);
 
     // La faut calculer les successeurs 
     // (normalement les 8 pour toute les directions, mais la dans l'exo c'est north, south, east, west)
 
     // North
-    getSuccessor(
+    const north = getSuccessor(
       Direction.NORTH,
       olSource,
       destination,
@@ -202,7 +242,7 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
     );
 
     // South
-    getSuccessor(
+    const south = getSuccessor(
       Direction.SOUTH,
       olSource,
       destination,
@@ -214,7 +254,7 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
     );
 
     // East
-    getSuccessor(
+    const east = getSuccessor(
       Direction.EAST,
       olSource,
       destination,
@@ -226,7 +266,7 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
     );
 
     // West
-    getSuccessor(
+    const west = getSuccessor(
       Direction.WEST,
       olSource,
       destination,
@@ -237,10 +277,45 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
       openList
     );
 
+    printAStarPath(univers, closedList, openList);
+
+    if([north, south, east, west].find((direction) => direction)){
+      console.log("FOUNDED");
+    }
+
   }
 
+  // console.log('------------- ASTAR ClosedList -------------');
+  // console.log(JSON.stringify(closedList));
+
+  // console.log('------------- ASTAR OpenList -------------');
+  // console.log(JSON.stringify(openList));
+
+  // console.log('------------- ASTAR Cells -------------');
+  // console.log(JSON.stringify(cells));
+
+  // console.log('------------------------------------------------------------------');
+  // console.log('------------------------------------------------------------------');
   // return true quand on aura atteint la destination
   return foundDest;
+}
+
+function printTheUnivers(univers: UniversPoint[]) {
+  console.log('------------- Print the univers -------------');
+  const rowCount = univers.filter((point) => point.col === 0).length;
+  const colCount = univers.filter((point) => point.row === 0).length;
+
+  for(let i = 0; i < rowCount; i++){
+    let row = '';
+    for(let j = 0; j < colCount; j++){
+      row += univers.find((point) => point.col === j && point.row === i).name;
+    }
+
+    console.log(row);
+  }
+
+  console.log('------------------------------------------------------------------');
+  console.log('------------------------------------------------------------------');
 }
 
 function one(useRealPuzzle: boolean = true): string {
@@ -253,17 +328,24 @@ function one(useRealPuzzle: boolean = true): string {
   let univers = initializeTheUnivers(lines);
   univers = expandTheUnivers(univers);
 
+  printTheUnivers(univers);
+
   const allGalaxies: UniversPoint[] = univers.filter((point: UniversPoint) => point.name === '#');
 
-  for (let i = 0; i < allGalaxies.length; i++) {
-    const currentGalaxy: UniversPoint = allGalaxies[i];
-    const otherGalaxies: UniversPoint[] = allGalaxies.filter((point: UniversPoint) => point.row !== currentGalaxy.row && point.col !== currentGalaxy.col);
 
-    for (let j = 0; j < otherGalaxies.length; j++) {
-      const founded = aStarSearch(univers, currentGalaxy, otherGalaxies[j]);
-      // console.log(`Pour (${currentGalaxy.row};${currentGalaxy.col}) vers (${otherGalaxies[j].row};${otherGalaxies[j].col}): ${founded}`);
-    }
-  }
+  aStarSearch(univers, allGalaxies[4], allGalaxies[8]);
+
+
+
+  // for (let i = 0; i < allGalaxies.length; i++) {
+  //   const currentGalaxy: UniversPoint = allGalaxies[i];
+  //   const otherGalaxies: UniversPoint[] = allGalaxies.filter((point: UniversPoint) => point.row !== currentGalaxy.row && point.col !== currentGalaxy.col);
+
+  //   for (let j = 0; j < otherGalaxies.length; j++) {
+  //     const founded = aStarSearch(univers, currentGalaxy, otherGalaxies[j]);
+  //     console.log(`Pour (${currentGalaxy.row};${currentGalaxy.col}) vers (${otherGalaxies[j].row};${otherGalaxies[j].col}): ${founded}`);
+  //   }
+  // }
 
   return `Day 11* ${useRealPuzzle ? 'realPuzzle' : 'examplePuzzle'
     }: ${finalResult}`;

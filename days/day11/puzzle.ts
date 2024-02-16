@@ -1,3 +1,8 @@
+export const testPuzzle = `
+...#......
+.......#..
+`;
+
 export const examplePuzzle = `
 ...#......
 .......#..
