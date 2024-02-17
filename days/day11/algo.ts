@@ -78,6 +78,7 @@ type AStarCell = {
 
 type OpenList = {
   f: number,
+  g: number,
   row: number,
   col: number
 }
@@ -90,6 +91,7 @@ enum Direction {
 }
 
 function getSuccessor(
+  univers: UniversPoint[],
   direction: Direction,
   source: OpenList,
   destination: UniversPoint,
@@ -120,16 +122,29 @@ function getSuccessor(
       break;
   }
   
-  // console.log(`RowCount: ${rowCount}; ColCount: ${colCount}`);
   if ((nextRow >= 0) && (nextRow < rowCount) && (nextCol >= 0) && (nextCol < colCount)) {
-        
+    
+    // ICI LA, Ici c'est quand j'ai trouvé
     if (nextRow === destination.row && nextCol === destination.col) {
       cells[nextRow][nextCol].parentRow = source.row;
       cells[nextRow][nextCol].parentCol = source.col;
-      return true;
+
+      return {isFounded: true, cells};
     } else if (closedList[nextRow][nextCol] === false) {
 
-      // console.log(`Next row: ${nextRow}; next col: ${nextCol}`);
+      // const cellPoint = univers.find((point) => point.row === source.row && point.col === source.col);
+      
+      // Il faut que je check si je dois faire un +2 ou un +1
+      // Je check ca comment? Je dois regarder si je suis en train de faire un mouvement vertical ou horizontal 
+      // Mais avant je dois retourner le nombre de deplacement 
+ 
+      // if(cellPoint.horizontalExpanded){
+      //   console.log('Le cell point est horizontalExpanded');
+      // }else if(cellPoint.verticalExpanded){
+      //   console.log('Le cell point est verticalExpanded');
+      // }else{
+      //   console.log('Le cell point est pas expanded');
+      // } 
 
       let newG: number = cells[source.row][source.col].g + 1;
       let newH: number = calculateHValue(nextRow, nextCol, destination);
@@ -137,15 +152,14 @@ function getSuccessor(
 
       // console.log(`Les cells:\n\t${JSON.stringify(cells)}`);
       // console.log('------------------------');
-      // console.log(`Source: (${source.row};${source.col})`);
-      // console.log(`Next: (${nextRow};${nextCol})`);
-      // console.log(`Le F: ${cells[nextRow][nextCol].f}, le newF: ${newF}`);
-      // console.log(`Les new: \n\tNewG: ${newG}\n\tNewH: ${newH}\n\tNewF: ${newF}`);
-
-      // console.log(`Le newG: ${newG}; old: ${cells[source.row][source.col].g}`);
+      console.log(`Source: (${source.row};${source.col})`);
+      console.log(`Next: (${nextRow};${nextCol})`);
+      console.log(`Le F: ${cells[nextRow][nextCol].f}, le newF: ${newF}`);
+      console.log(`Les new: \n\tNewG: ${newG}\n\tNewH: ${newH}\n\tNewF: ${newF}`);
+      console.log(`Le newG: ${newG}; old: ${cells[source.row][source.col].g}`);
       
-      if (cells[nextRow][nextCol].f === Number.MAX_VALUE || cells[nextRow][nextCol].f >= newF) {
-        openList.push({ f: newF, row: nextRow, col: nextCol });
+      if (cells[nextRow][nextCol].f === Number.MAX_VALUE || cells[nextRow][nextCol].f > newF) {
+        openList.push({ f: newF, g: newG, row: nextRow, col: nextCol });
 
         cells[nextRow][nextCol].f = newF;
         cells[nextRow][nextCol].g = newG;
@@ -156,9 +170,8 @@ function getSuccessor(
     }
   }
 
-  // Il faut que je regarde si les successor sont ok ou pas et voir pourquoi je n'atteint jamais la destination 
-
-  return false;
+  // Il faut que je regarde si les successor sont ok ou pas et voir pourquoi je n'atteint jamais la destination
+  return {isFounded: false};
 }
 
 function printAStarPath(univers: UniversPoint[], closedList: boolean[][], openList: OpenList[]) {
@@ -193,14 +206,19 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
 
   const closedList: boolean[][] = [...new Array(rowCount)].map((row) => row = ([...new Array(colCount)]).map((col) => col = false));
 
-  const defaultCell: AStarCell = {
-    f: Number.MAX_VALUE,
-    g: Number.MAX_VALUE,
-    h: Number.MAX_VALUE,
-    parentRow: -1,
-    parentCol: -1
-  };
-  const cells: AStarCell[][] = [...new Array(rowCount)].map((u) => u = ([...new Array(colCount)]).map((u) => u = defaultCell));
+  const cells: AStarCell[][] = [];
+  for(let i = 0; i < rowCount; i++){
+    cells.push([]);
+    for(let j = 0; j < colCount; j++){
+      cells[i].push({
+        f: Number.MAX_VALUE,
+        g: Number.MAX_VALUE,
+        h: Number.MAX_VALUE,
+        parentRow: -1,
+        parentCol: -1
+      });
+    }
+  }
 
   // Starting point
   cells[source.row][source.col] = {
@@ -211,7 +229,7 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
     parentCol: source.col
   }
 
-  const openList: OpenList[] = [{ f: 0, row: source.row, col: source.col }];
+  const openList: OpenList[] = [{ f: 0, g: 0, row: source.row, col: source.col }];
 
   let foundDest = false;
 
@@ -221,16 +239,14 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
 
     openList.splice(i, 1);
 
-    // console.log(`ICI: ${JSON.stringify(closedList)}`);
     closedList[olSource.row][olSource.col] = true;
-
-    // console.log(`LA ${i}: ${JSON.stringify(closedList)}`);
 
     // La faut calculer les successeurs 
     // (normalement les 8 pour toute les directions, mais la dans l'exo c'est north, south, east, west)
 
     // North
     const north = getSuccessor(
+      univers,
       Direction.NORTH,
       olSource,
       destination,
@@ -243,6 +259,7 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
 
     // South
     const south = getSuccessor(
+      univers,
       Direction.SOUTH,
       olSource,
       destination,
@@ -255,6 +272,7 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
 
     // East
     const east = getSuccessor(
+      univers,
       Direction.EAST,
       olSource,
       destination,
@@ -267,6 +285,7 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
 
     // West
     const west = getSuccessor(
+      univers,
       Direction.WEST,
       olSource,
       destination,
@@ -279,23 +298,22 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
 
     printAStarPath(univers, closedList, openList);
 
-    if([north, south, east, west].find((direction) => direction)){
+    const path = [north, south, east, west].find((direction) => direction.isFounded);
+    if(path){
       console.log("FOUNDED");
-    }
+      break;
 
+      // console.log(`Source: (${source.row};${source.col})`);
+      // let {parentRow, parentCol} = path.cells[destination.row][destination.col];
+      // while(parentRow !== source.row && parentCol !== source.col){
+      //   console.log(`-> (${parentRow};${parentCol})`);
+      //   parentRow = cells[parentRow][parentCol].parentRow;
+      //   parentCol = cells[parentRow][parentCol].parentCol;
+      // }
+      // console.log(`Destination: (${destination.row};${destination.col})`);
+    }
   }
 
-  // console.log('------------- ASTAR ClosedList -------------');
-  // console.log(JSON.stringify(closedList));
-
-  // console.log('------------- ASTAR OpenList -------------');
-  // console.log(JSON.stringify(openList));
-
-  // console.log('------------- ASTAR Cells -------------');
-  // console.log(JSON.stringify(cells));
-
-  // console.log('------------------------------------------------------------------');
-  // console.log('------------------------------------------------------------------');
   // return true quand on aura atteint la destination
   return foundDest;
 }
@@ -321,7 +339,7 @@ function printTheUnivers(univers: UniversPoint[]) {
 function one(useRealPuzzle: boolean = true): string {
   const lines: string[] = useRealPuzzle
     ? realPuzzle.trim().split('\n')
-    : examplePuzzle.trim().split('\n');
+    : testPuzzle.trim().split('\n');
 
   let finalResult = '';
 
@@ -333,7 +351,7 @@ function one(useRealPuzzle: boolean = true): string {
   const allGalaxies: UniversPoint[] = univers.filter((point: UniversPoint) => point.name === '#');
 
 
-  aStarSearch(univers, allGalaxies[4], allGalaxies[8]);
+  aStarSearch(univers, allGalaxies[0], allGalaxies[1]);
 
 
 
