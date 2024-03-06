@@ -128,7 +128,7 @@ function getSuccessor(
       cells[nextRow][nextCol].parentRow = source.row;
       cells[nextRow][nextCol].parentCol = source.col;
       cells[nextRow][nextCol].g = source.g + 1;
-
+      
       return { isFounded: true, cells };
     } else if (closedList[nextRow][nextCol] === false) {
 
@@ -136,19 +136,23 @@ function getSuccessor(
       // Je check ca comment? Je dois regarder si je suis en train de faire un mouvement vertical ou horizontal 
       // Mais avant je dois retourner le nombre de deplacement 
 
-      let newG: number = cells[source.row][source.col].g + 1;
+      let newG: number = cells[source.row][source.col].g;
       const cellPoint = univers.find((point) => point.row === source.row && point.col === source.col);
 
       if (cellPoint.horizontalExpanded) {
-        console.log('Le cell point est horizontalExpanded');
         if (direction === Direction.NORTH || direction === Direction.SOUTH) {
-          newG++;
+          newG += 2;
         }
-      } else if (cellPoint.verticalExpanded) {
-        console.log('Le cell point est verticalExpanded');
+      }
+      
+      if (cellPoint.verticalExpanded) {
         if (direction === Direction.EAST || direction === Direction.WEST) {
-          newG++;
+          newG += 2;
         }
+      }
+
+      if(!(cellPoint.horizontalExpanded && cellPoint.verticalExpanded)){
+        newG += 1;
       }
 
       const newH: number = calculateHValue(nextRow, nextCol, destination);
@@ -178,35 +182,97 @@ function getSuccessor(
   return { isFounded: false };
 }
 
-function printAStarPath(univers: UniversPoint[], closedList: boolean[][], openList: OpenList[]) {
+function printAStarPath(univers: UniversPoint[], source: UniversPoint, destination: UniversPoint, closedList: boolean[][], openList: OpenList[], cells: AStarCell[][]) {
   console.log('------------- Print AStar Path -------------');
   const rowCount = univers.filter((point) => point.col === 0).length;
   const colCount = univers.filter((point) => point.row === 0).length;
 
+  const universText: string[] = [];
+
+  let galaxyCounter = 1;
+
   for (let i = 0; i < rowCount; i++) {
     let row = '';
     for (let j = 0; j < colCount; j++) {
+      const point = univers.find((point) => point.col === j && point.row === i);
+
       if (closedList[i][j] === true) {
-        row += 'X';
+        if(point.row === source.row && point.col === source.col){
+          row += 'S';
+          galaxyCounter++;
+        }else if(point.row === destination.row && point.col === destination.col){
+          row += 'D';
+          galaxyCounter++;
+        }else{
+          if(point.name === '#'){
+            row += galaxyCounter;
+            galaxyCounter++;
+          }else if(point.horizontalExpanded || point.verticalExpanded){
+            row += 'X';
+          } else {
+            row += 'x';
+          }
+        }
       } else if (openList.find((open) => open.row === i && open.col === j)) {
         row += 'O';
-      } else {
-        row += univers.find((point) => point.col === j && point.row === i).name;
+      } else {  
+        if(point.name === '#'){
+          row += galaxyCounter;
+          galaxyCounter++;
+        } else {
+          row += point.name;
+        }
       }
     }
-
-    console.log(row);
+    universText.push(row);
+    // console.log('ROW:' + row);
   }
 
+  let current = cells[destination.row][destination.col];
+
+  while (current.f != 0) {
+    let tmp1: string[] = universText[current.parentRow].split('');
+    tmp1[current.parentCol] = `${tmp1[current.parentCol]}`;
+    // tmp1.splice(current.parentCol, 1, `\u001b[1;32m${universText[current.parentRow].charAt(current.parentCol)}\u001b[0m`);
+
+    universText[current.parentRow] = tmp1.join('');
+    current = cells[current.parentRow][current.parentCol];
+  }
+
+  let tmp2: any = universText[destination.row].split('');
+  tmp2.splice(destination.col, 1, '\u001b[1;32mD\u001b[0m');
+  tmp2 = tmp2.join('');
+  universText[destination.row] = tmp2;
+
+  universText.forEach((row) => console.log(row));
+
+  console.log('-----');
+
+  const thePath: AStarCell[] = [cells[destination.row][destination.col]];
+  current = cells[destination.row][destination.col];
+
+  const SHIT = [destination];
+
+  console.log(`Destination: (${destination.row};${destination.col})`);
+  while (current.f != 0) {
+    console.log(`-> (${current.parentRow};${current.parentCol}), ${current.g}`);
+    // console.log(`--> (${})`);
+
+    SHIT.push(univers.find((point) => point.row === current.parentRow && point.col === current.parentCol));
+
+    current = cells[current.parentRow][current.parentCol];
+    thePath.push(current);
+  }
+  console.log(`Source: (${source.row};${source.col})`);
+
+  // console.log(SHIT);
+  // console.log(SHIT.length);
   console.log('------------------------------------------------------------------');
 }
 
-function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination: UniversPoint): boolean {
+function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination: UniversPoint): AStarCell[] {
   const rowCount = univers.filter((point: UniversPoint) => point.col === 0).length;
   const colCount = univers.filter((point: UniversPoint) => point.row === 0).length;
-
-  // Flemme de faire les checks genre est-ce que la source est bien dans l'univers
-  // est-ce que la destination est dans l'univers etc
 
   const openList: OpenList[] = [{ f: 0, g: 0, row: source.row, col: source.col }];
   const closedList: boolean[][] = [...new Array(rowCount)].map((row) => row = ([...new Array(colCount)]).map((col) => col = false));
@@ -224,6 +290,8 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
       });
     }
   }
+
+  const thePath: AStarCell[] = [cells[destination.row][destination.col]];
 
   // Starting point
   cells[source.row][source.col] = {
@@ -298,37 +366,23 @@ function aStarSearch(univers: UniversPoint[], source: UniversPoint, destination:
       openList
     );
 
-    printAStarPath(univers, closedList, openList);
-
     const path = [north, south, east, west].find((direction) => direction.isFounded);
     if (path) {
-      console.log("FOUNDED");
+      printAStarPath(univers, source, destination, closedList, openList, cells);
 
-
-      const thePath: AStarCell[] = [path.cells[destination.row][destination.col]];
-      let current = path.cells[destination.row][destination.col];
+      let current = cells[destination.row][destination.col];
+      
       while (current.f != 0) {
-        // console.log(`-> (${current.parentRow};${current.parentCol}), ${current.g}`);
-        current = path.cells[current.parentRow][current.parentCol];
+        current = cells[current.parentRow][current.parentCol];
         thePath.push(current);
       }
-
-      thePath.reverse();
-
-      console.log(`Source: (${source.row};${source.col})`);
-      thePath.forEach((step) => {
-        const point = univers.find((point) => point.row === step.parentRow && point.col === step.parentCol);
-        console.log(JSON.stringify(point));
-        console.log(`-> (${step.parentRow};${step.parentCol}), ${step.g}`);
-      });
-      console.log(`Destination: (${destination.row};${destination.col})`);
-
       break;
     }
   }
 
-  // return true quand on aura atteint la destination
-  return foundDest;
+  console.log(univers.find((point) => point.row === 3 && point.col === 5));
+
+  return thePath;
 }
 
 function printTheUnivers(univers: UniversPoint[]) {
@@ -360,7 +414,7 @@ function printTheUnivers(univers: UniversPoint[]) {
 function one(useRealPuzzle: boolean = true): string {
   const lines: string[] = useRealPuzzle
     ? realPuzzle.trim().split('\n')
-    : testPuzzle.trim().split('\n');
+    : examplePuzzle.trim().split('\n');
 
   let finalResult = '';
 
@@ -371,9 +425,17 @@ function one(useRealPuzzle: boolean = true): string {
 
   const allGalaxies: UniversPoint[] = univers.filter((point: UniversPoint) => point.name === '#');
 
-  aStarSearch(univers, allGalaxies[0], allGalaxies[1]);
+  const pathFrom5To9 = aStarSearch(univers, allGalaxies[4], allGalaxies[8]);
+  console.log(`Le path de 5 vers 9 doit faire 9: ${pathFrom5To9[0].g+1}`); // GOOD
 
+  // const pathFrom1To7 = aStarSearch(univers, allGalaxies[0], allGalaxies[6]);
+  // console.log(`Le path de 1 vers 7 doit faire 15: ${pathFrom1To7[0].g+1}`);
 
+  // const pathFrom3To6 = aStarSearch(univers, allGalaxies[2], allGalaxies[5]);
+  // console.log(`Le path de 3 vers 6 doit faire 17: ${pathFrom3To6.length+1}`);
+
+  // const pathFrom8To9 = aStarSearch(univers, allGalaxies[7], allGalaxies[8]);
+  // console.log(`Le path de 8 vers 9 doit faire 5: ${pathFrom8To9.length+1}`);
 
   // for (let i = 0; i < allGalaxies.length; i++) {
   //   const currentGalaxy: UniversPoint = allGalaxies[i];
